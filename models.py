@@ -54,9 +54,16 @@ class ResNet(nn.Module):
         )
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * 4, num_classes)
+        self.fc = nn.Linear(in_features = 512*4, out_features = 1024)
+        self.DenseClassifier = nn.Sequential(
+            nn.Linear(in_features = 1024 + 12, out_features = 2000),
+            nn.Linear(in_features = 2000, out_features = 1000),
+            nn.Linear(in_features = 500, out_features = 500),
+            nn.Linear(in_features = 500, out_features = 100),
+            nn.Linear(in_features = 100, out_features = 1)
+        )
 
-    def forward(self, x):
+    def forward(self, x, x2):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -69,6 +76,8 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = x.reshape(x.shape[0], -1)
         x = self.fc(x)
+        x = torch.cat((x,x2),axis = 1)
+        x = self.DenseClassifier(x)
 
         return x
 
