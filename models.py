@@ -10,9 +10,9 @@ class block(nn.Module):
         self.identity_downsample  = identity_downsample
 
         self.convblock1 = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, out_channels, kernel_size = 1, stride = 1, padding =0),
+                nn.Conv2d(in_channels, out_channels,kernel_size = 1, stride = 1, padding =0),
                 nn.BatchNorm2d(out_channels),
-                nn.Conv2d(out_channels, out_channels, out_channels, kernel_size = 3, stride = stride, padding =1),
+                nn.Conv2d(out_channels, out_channels, kernel_size = 3, stride = stride, padding =1),
                 nn.BatchNorm2d(out_channels),
                 nn.Conv2d(out_channels, self.expansion*out_channels, kernel_size =1,stride = 1, padding = 0),
                 nn.BatchNorm2d(out_channels*self.expansion)
@@ -58,7 +58,7 @@ class ResNet(nn.Module):
         self.DenseClassifier = nn.Sequential(
             nn.Linear(in_features = 1024 + 12, out_features = 2000),
             nn.Linear(in_features = 2000, out_features = 1000),
-            nn.Linear(in_features = 500, out_features = 500),
+            nn.Linear(in_features = 1000, out_features = 500),
             nn.Linear(in_features = 500, out_features = 100),
             nn.Linear(in_features = 100, out_features = 1)
         )
@@ -68,16 +68,19 @@ class ResNet(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
+        
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
 
-        x = self.avgpool(x)
-        x = x.reshape(x.shape[0], -1)
-        x = self.fc(x)
-        x = torch.cat((x,x2),axis = 1)
-        x = self.DenseClassifier(x)
+        x = self.avgpool(x)   # output shape = torch.Size([1, 2048, 1, 1])
+        x = x.reshape(x.shape[0], -1)    # output shape = torch.Size([1, 2048])
+        x = self.fc(x) # output shape = torch.Size([1, 1024])
+        x = x.view(-1,1024) # output shape = torch.Size([1, 1024])
+        x = torch.cat((x,x2),axis = 1) # output shape = torch.Size([1, 1036])
+        x = self.DenseClassifier(x) # output shape = 
+        x = x.view(-1,1) # output shape = torch.Size([1, 1])
 
         return x
 
@@ -132,4 +135,3 @@ def test():
     net = ResNet101(img_channel=3, num_classes=1000)
     y = net(torch.randn(4, 3, 224, 224)).to("cuda")
     print(y.size())
-
